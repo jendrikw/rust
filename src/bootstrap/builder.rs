@@ -733,6 +733,7 @@ impl<'a> Builder<'a> {
                 test::Incremental,
                 test::Debuginfo,
                 test::UiFullDeps,
+                test::CodegenCranelift,
                 test::Rustdoc,
                 test::RunCoverageRustdoc,
                 test::Pretty,
