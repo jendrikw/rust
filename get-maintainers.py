@@ -84,7 +84,7 @@ def changed_files_git(args) -> list[bytes]:
             diffparam = to_rev
 
         fnames = sp.check_output(
-            ["git", "diff", "--name-only", diffparam], stderr=sp.STDOUT
+            ["git", "diff", "--name-only", "--merge-base", diffparam], stderr=sp.STDOUT
         )
     except sp.CalledProcessError:
         eprint("Failed to process revisions")
@@ -124,6 +124,9 @@ def print_owners(owners: set[str], groups: GroupMap):
     """Expand and prettyprint owner teams and users"""
     users = [u for u in owners if u.startswith("@")]
     teams = [t for t in owners if not t.startswith("@")]
+
+    if len(users) == 0 and len(teams) == 0:
+        print("No specified maintainers for the changed files")
 
     if len(users) > 0:
         print("Users:")
