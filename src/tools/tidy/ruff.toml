@@ -1,0 +1,15 @@
+# Configuration for ruff python linter, run as part of tidy external tools
+
+# B (bugbear), E (pycodestyle, standard), EXE (executables) F (flakes, standard)
+# ERM for error messages would be beneficial at some point
+select = ["B", "E", "EXE", "F"]
+
+ignore = [
+    "E501", # line-too-long
+    "F403", # undefined-local-with-import-star
+    "F405", # undefined-local-with-import-star-usage
+    # "B905", # zip-without-explicit-strict, not available in earlier python
+]
+
+# lowest possible for ruff
+target-version = "py37"
