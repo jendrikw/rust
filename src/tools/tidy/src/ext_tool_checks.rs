@@ -73,7 +73,7 @@ fn check_impl(
         eprintln!("linting python files");
 
         let mut cfg_path = root_path.to_owned();
-        cfg_path.extend(["src", "tools", "tidy", "ruff.toml"]);
+        cfg_path.extend(["src", "tools", "tidy", "config", "ruff.toml"]);
         let mut args = vec![OsStr::new("--config"), cfg_path.as_ref()];
         add_pos_args(root_path, &mut args, pos_args);
 
