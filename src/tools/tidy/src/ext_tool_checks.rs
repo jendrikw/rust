@@ -14,10 +14,10 @@
 //!    - If `--bless` is provided, formatters may run
 //!    - Pass any additional config after the `--`. If no files are specified,
 //!      use a default.
+//! 3. Print the output of the given command. If it fails and `TIDY_PRINT_DIFF`
+//!    is set, rerun the tool to print a suggestion diff (for e.g. CI)
 
-#![allow(unused)]
 use std::ffi::OsStr;
-use std::ffi::OsString;
 use std::fmt;
 use std::fs;
 use std::io;
@@ -28,8 +28,6 @@ use std::process::Command;
 // const MIN_PY_REV: (u32, u32) = (3, 7);
 const MIN_PY_REV: (u32, u32) = (3, 7);
 const MIN_PY_REV_STR: &str = "≥3.7";
-const BLACK_VERSION: &str = "==23.3.0";
-const RUFF_VERSION: &str = "==0.0.272";
 
 /// Path to find the python executable within a virtual environment
 #[cfg(target_os = "windows")]
@@ -71,27 +69,27 @@ fn check_impl(
         None => vec![],
     };
 
-    let py_all = lint_args.contains(&"py");
-    let py_lint = lint_args.contains(&"py:lint") || py_all;
-    let py_fmt = lint_args.contains(&"py:fmt") || py_all;
+    let python_all = lint_args.contains(&"py");
+    let python_lint = lint_args.contains(&"py:lint") || python_all;
+    let python_fmt = lint_args.contains(&"py:fmt") || python_all;
     let shell_all = lint_args.contains(&"shell");
     let shell_lint = lint_args.contains(&"shell:lint") || shell_all;
     // let mut pip_checked = false;
     let mut py_path = None;
 
-    let (mut cfg_args, mut file_args): (Vec<_>, Vec<_>) = pos_args
+    let (cfg_args, file_args): (Vec<_>, Vec<_>) = pos_args
         .into_iter()
         .map(OsStr::new)
         .partition(|arg| arg.to_str().is_some_and(|s| s.starts_with("-")));
 
-    if py_lint || py_fmt {
+    if python_lint || python_fmt {
         let venv_path = outdir.join("venv");
         let mut reqs_path = root_path.to_owned();
         reqs_path.extend(PIP_REQ_PATH);
         py_path = Some(get_or_create_venv(&venv_path, &reqs_path)?);
     }
 
-    if py_lint {
+    if python_lint {
         eprintln!("linting python files");
         let mut cfg_args_ruff = cfg_args.clone();
         let mut file_args_ruff = file_args.clone();
@@ -125,7 +123,7 @@ fn check_impl(
         let _ = res?;
     }
 
-    if py_fmt {
+    if python_fmt {
         let mut cfg_args_black = cfg_args.clone();
         let mut file_args_black = file_args.clone();
 
@@ -169,6 +167,7 @@ fn check_impl(
     Ok(())
 }
 
+/// Helper to create `cfg1 cfg2 -- file1 file2` output
 fn merge_args<'a>(cfg_args: &[&'a OsStr], file_args: &[&'a OsStr]) -> Vec<&'a OsStr> {
     let mut args = cfg_args.to_owned();
     args.push("--".as_ref());
@@ -179,7 +178,6 @@ fn merge_args<'a>(cfg_args: &[&'a OsStr], file_args: &[&'a OsStr]) -> Vec<&'a Os
 /// Run a python command with given arguments. `py_path` should be a virtualenv.
 fn py_runner(py_path: &Path, bin: &'static str, args: &[&OsStr]) -> Result<(), Error> {
     let status = Command::new(py_path).arg("-m").arg(bin).args(args).status()?;
-
     if status.success() { Ok(()) } else { Err(Error::FailedCheck(bin)) }
 }
 
@@ -208,7 +206,7 @@ fn get_or_create_venv(venv_path: &Path, src_reqs_path: &Path) -> Result<PathBuf,
             });
         }
         create_venv_at_path(venv_path)?;
-        install_requirements(&py_path, src_reqs_path, &dst_reqs_path);
+        install_requirements(&py_path, src_reqs_path, &dst_reqs_path)?;
     }
 
     verify_py_version(&py_path)?;
@@ -266,14 +264,11 @@ fn create_venv_at_path(path: &Path) -> Result<(), Error> {
 
     if out.status.success() {
         return Ok(());
-    } 
+    }
     let err = if String::from_utf8_lossy(&out.stderr).contains("No module named virtualenv") {
         Error::Generic(format!("virtualenv not found: is it installed for {sys_py}?"))
     } else {
-        Error::Generic(format!(
-            "failed to create virtualenv at '{}' using {sys_py}",
-            path.display()
-        ))
+        Error::Generic(format!("failed to create venv at '{}' using {sys_py}", path.display()))
     };
     Err(err)
 }
@@ -288,7 +283,7 @@ fn verify_py_version(py_path: &Path) -> Result<(), Error> {
     let major: u32 = vers_comps.next().unwrap().parse().unwrap();
     let minor: u32 = vers_comps.next().unwrap().parse().unwrap();
 
-    if (major < MIN_PY_REV.0) || ((major == MIN_PY_REV.0) && (minor < MIN_PY_REV.1)) {
+    if (major, minor) < MIN_PY_REV {
         Err(Error::Version {
             program: "python",
             required: MIN_PY_REV_STR,
@@ -325,39 +320,6 @@ fn install_requirements(
         fs::read_to_string(src_reqs_path).unwrap(),
         fs::read_to_string(dst_reqs_path).unwrap()
     );
-    Ok(())
-}
-
-/// Given a binary (e.g. `black`, `ruff`) initialize it in the venv and return its path
-fn get_or_init_py_bin(
-    py_path: &Path,
-    bin: &str,
-    version: &str,
-    pip_checked: &mut bool,
-) -> Result<(), Error> {
-    let bin_vers = format!("{bin}{version}");
-    let out = Command::new(py_path).args(["-m", "pip", "freeze"]).output().unwrap().stdout;
-
-    if String::from_utf8_lossy(&out).contains(&bin_vers) {
-        return Ok(());
-    }
-
-    eprintln!("installing {bin_vers} via pip");
-
-    if !*pip_checked {
-        // verify pip is updated before installing anything
-        Command::new(py_path)
-            .args(["-m", "pip", "install", "--upgrade", "pip"])
-            .status()
-            .expect("failed to launch python");
-        *pip_checked = true;
-    }
-
-    let status = Command::new(py_path).args(["-m", "pip", "install", &bin_vers]).status()?;
-    if !status.success() {
-        return Err(Error::Generic(format!("failed to install {bin}")));
-    }
-
     Ok(())
 }
 
