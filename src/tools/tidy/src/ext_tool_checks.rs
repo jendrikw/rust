@@ -2,9 +2,24 @@
 //!
 //! Handles python tool version managment via a virtual environment in
 //! `build/venv`.
+//!
+//! # Functional outline
+//!
+//! 1. Run tidy with an extra option: `--extra-checks=py,shell`,
+//!    `--extra-checks=py:lint`, or similar. Optionally provide specific
+//!    configuration after a double dash (`--extra-checks=py -- foo.py`)
+//! 2. Build configuration based on args/environment:
+//!    - Formatters by default are in check only mode
+//!    - If in CI (TIDY_PRINT_DIFF=1 is set), check and print the diff
+//!    - If `--bless` is provided, formatters may run
+//!    - Pass any additional config after the `--`. If no files are specified,
+//!      use a default.
 
+#![allow(unused)]
 use std::ffi::OsStr;
+use std::ffi::OsString;
 use std::fmt;
+use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -21,6 +36,11 @@ const RUFF_VERSION: &str = "==0.0.272";
 const REL_PY_PATH: &[&str] = &["Scripts", "python3.exe"];
 #[cfg(not(target_os = "windows"))]
 const REL_PY_PATH: &[&str] = &["bin", "python3"];
+
+const RUFF_CONFIG_PATH: &[&str] = &["src", "tools", "tidy", "config", "ruff.toml"];
+/// Location within build directory
+const RUFF_CACH_PATH: &[&str] = &["cache", "ruff_cache"];
+const PIP_REQ_PATH: &[&str] = &["src", "tools", "tidy", "config", "requirements.txt"];
 
 pub fn check(
     root_path: &Path,
@@ -42,114 +62,154 @@ fn check_impl(
     extra_checks: Option<&str>,
     pos_args: &[String],
 ) -> Result<(), Error> {
+    let show_diff = std::env::var("TIDY_PRINT_DIFF")
+        .map_or(false, |v| v.eq_ignore_ascii_case("true") || v == "1");
+
     // Split comma-separated args up
     let lint_args = match extra_checks {
         Some(s) => s.strip_prefix("--extra-checks=").unwrap().split(',').collect(),
         None => vec![],
     };
 
-    let mut py_lint = lint_args.contains(&"py:lint");
-    let mut py_fmt = lint_args.contains(&"py:fmt");
-    let mut shell_lint = lint_args.contains(&"shell:lint");
-    let mut pip_checked = false;
-
-    if lint_args.contains(&"py") {
-        py_lint = true;
-        py_fmt = true;
-    }
-
-    if lint_args.contains(&"shell") {
-        shell_lint = true;
-    }
-
+    let py_all = lint_args.contains(&"py");
+    let py_lint = lint_args.contains(&"py:lint") || py_all;
+    let py_fmt = lint_args.contains(&"py:fmt") || py_all;
+    let shell_all = lint_args.contains(&"shell");
+    let shell_lint = lint_args.contains(&"shell:lint") || shell_all;
+    // let mut pip_checked = false;
     let mut py_path = None;
+
+    let (mut cfg_args, mut file_args): (Vec<_>, Vec<_>) = pos_args
+        .into_iter()
+        .map(OsStr::new)
+        .partition(|arg| arg.to_str().is_some_and(|s| s.starts_with("-")));
 
     if py_lint || py_fmt {
         let venv_path = outdir.join("venv");
-        py_path = Some(get_or_create_venv(&venv_path)?);
+        let mut reqs_path = root_path.to_owned();
+        reqs_path.extend(PIP_REQ_PATH);
+        py_path = Some(get_or_create_venv(&venv_path, &reqs_path)?);
     }
 
     if py_lint {
         eprintln!("linting python files");
+        let mut cfg_args_ruff = cfg_args.clone();
+        let mut file_args_ruff = file_args.clone();
 
         let mut cfg_path = root_path.to_owned();
-        cfg_path.extend(["src", "tools", "tidy", "config", "ruff.toml"]);
-        let mut args = vec![OsStr::new("--config"), cfg_path.as_ref()];
-        add_pos_args(root_path, &mut args, pos_args);
+        cfg_path.extend(RUFF_CONFIG_PATH);
+        let mut cache_dir = outdir.to_owned();
+        cache_dir.extend(RUFF_CACH_PATH);
 
-        py_runner(py_path.as_ref().unwrap(), "ruff", RUFF_VERSION, &args, &mut pip_checked)?;
+        cfg_args_ruff.extend([
+            "--config".as_ref(),
+            cfg_path.as_os_str(),
+            "--cache-dir".as_ref(),
+            cache_dir.as_os_str(),
+        ]);
+
+        if file_args_ruff.is_empty() {
+            file_args_ruff.push(root_path.as_os_str());
+        }
+
+        let mut args = merge_args(&cfg_args_ruff, &file_args_ruff);
+        let res = py_runner(py_path.as_ref().unwrap(), "ruff", &args);
+
+        if res.is_err() && show_diff {
+            eprintln!("\npython linting failed! Printing diff suggestions:");
+
+            args.insert(0, "--diff".as_ref());
+            let _ = py_runner(py_path.as_ref().unwrap(), "ruff", &args);
+        }
+        // Rethrow error
+        let _ = res?;
     }
 
     if py_fmt {
-        let mut args = if bless {
-            eprintln!("formatting python files");
-            vec![]
-        } else {
-            eprintln!("checking python file format");
-            vec![OsStr::new("--check")]
-        };
-        add_pos_args(root_path, &mut args, pos_args);
+        let mut cfg_args_black = cfg_args.clone();
+        let mut file_args_black = file_args.clone();
 
-        py_runner(py_path.as_ref().unwrap(), "black", BLACK_VERSION, &args, &mut pip_checked)?;
+        if bless {
+            eprintln!("formatting python files");
+        } else {
+            eprintln!("checking python file formatting");
+            cfg_args_black.push("--check".as_ref());
+        }
+
+        if file_args_black.is_empty() {
+            file_args_black.push(root_path.as_os_str());
+        }
+
+        let mut args = merge_args(&cfg_args_black, &file_args_black);
+        let res = py_runner(py_path.as_ref().unwrap(), "black", &args);
+
+        if res.is_err() && show_diff {
+            eprintln!("\npython formatting does not match! Printing diff:");
+
+            args.insert(0, "--diff".as_ref());
+            let _ = py_runner(py_path.as_ref().unwrap(), "black", &args);
+        }
+        // Rethrow error
+        let _ = res?;
     }
 
     if shell_lint {
         eprintln!("linting shell files");
 
-        let mut args = vec![];
-        let to_check;
-
-        if pos_args.is_empty() {
-            // shellcheck doesn't have a good file finder, so we need to help it
-            to_check = find_with_extension(root_path, "sh")?;
-            add_pos_args(root_path, &mut args, &to_check);
-        } else {
-            add_pos_args(root_path, &mut args, pos_args);
+        let mut file_args_shc = file_args.clone();
+        let files;
+        if file_args_shc.is_empty() {
+            files = find_with_extension(root_path, "sh")?;
+            file_args_shc.extend(files.iter().map(|p| p.as_os_str()));
         }
 
-        shellcheck_runner(&args)?;
+        shellcheck_runner(&merge_args(&cfg_args, &file_args_shc))?;
     }
 
     Ok(())
 }
 
-/// If there are positional arguments, push them. Otherwise, just use the root path
-fn add_pos_args<'a>(
-    root_path: &'a Path,
-    args: &mut Vec<&'a OsStr>,
-    pos_args: &'a [impl AsRef<OsStr>],
-) {
-    args.push(OsStr::new("--"));
-    if pos_args.is_empty() {
-        args.push(root_path.as_os_str());
-    } else {
-        args.extend(pos_args.iter().map(AsRef::as_ref));
-    }
+fn merge_args<'a>(cfg_args: &[&'a OsStr], file_args: &[&'a OsStr]) -> Vec<&'a OsStr> {
+    let mut args = cfg_args.to_owned();
+    args.push("--".as_ref());
+    args.extend(file_args);
+    args
 }
 
 /// Run a python command with given arguments. `py_path` should be a virtualenv.
-fn py_runner(
-    py_path: &Path,
-    bin: &'static str,
-    version: &str,
-    args: &[&OsStr],
-    pip_checked: &mut bool,
-) -> Result<(), Error> {
-    get_or_init_py_bin(py_path, bin, version, pip_checked)?;
+fn py_runner(py_path: &Path, bin: &'static str, args: &[&OsStr]) -> Result<(), Error> {
     let status = Command::new(py_path).arg("-m").arg(bin).args(args).status()?;
 
     if status.success() { Ok(()) } else { Err(Error::FailedCheck(bin)) }
 }
 
-/// Create a virtuaenv at a given path if it doesn't already exist. Returns the
-/// path to that venv's python executable.
-fn get_or_create_venv(venv_path: &Path) -> Result<PathBuf, Error> {
-    if !venv_path.is_dir() {
-        create_venv_at_path(venv_path)?;
-    }
-
+/// Create a virtuaenv at a given path if it doesn't already exist, or validate
+/// the install if it does. Returns the path to that venv's python executable.
+fn get_or_create_venv(venv_path: &Path, src_reqs_path: &Path) -> Result<PathBuf, Error> {
+    let mut should_create = true;
+    let dst_reqs_path = venv_path.join("requirements.txt");
     let mut py_path = venv_path.to_owned();
     py_path.extend(REL_PY_PATH);
+
+    if let Ok(req) = fs::read_to_string(&dst_reqs_path) {
+        if req == fs::read_to_string(src_reqs_path)? {
+            // found existing environment
+            should_create = false;
+        } else {
+            eprintln!("requirements.txt file mismatch, recreating environment");
+        }
+    }
+
+    if should_create {
+        eprintln!("removing old virtual environment");
+        if venv_path.is_dir() {
+            fs::remove_dir_all(venv_path).unwrap_or_else(|_| {
+                panic!("failed to remove directory at {}", venv_path.display())
+            });
+        }
+        create_venv_at_path(venv_path)?;
+        install_requirements(&py_path, src_reqs_path, &dst_reqs_path);
+    }
 
     verify_py_version(&py_path)?;
     Ok(py_path)
@@ -205,15 +265,17 @@ fn create_venv_at_path(path: &Path) -> Result<(), Error> {
     let out = Command::new(sys_py).args(["-m", "virtualenv"]).arg(path).output().unwrap();
 
     if out.status.success() {
-        Ok(())
-    } else if String::from_utf8_lossy(&out.stderr).contains("No module named virtualenv") {
-        Err(Error::Generic(format!("virtualenv not found: is it installed for {sys_py}?")))
+        return Ok(());
+    } 
+    let err = if String::from_utf8_lossy(&out.stderr).contains("No module named virtualenv") {
+        Error::Generic(format!("virtualenv not found: is it installed for {sys_py}?"))
     } else {
-        Err(Error::Generic(format!(
+        Error::Generic(format!(
             "failed to create virtualenv at '{}' using {sys_py}",
             path.display()
-        )))
-    }
+        ))
+    };
+    Err(err)
 }
 
 /// Parse python's version output (`Python x.y.z`) and ensure we have a
@@ -235,6 +297,35 @@ fn verify_py_version(py_path: &Path) -> Result<(), Error> {
     } else {
         Ok(())
     }
+}
+
+fn install_requirements(
+    py_path: &Path,
+    src_reqs_path: &Path,
+    dst_reqs_path: &Path,
+) -> Result<(), Error> {
+    let stat = Command::new(py_path)
+        .args(["-m", "pip", "install", "--upgrade", "pip"])
+        .status()
+        .expect("failed to launch pip");
+    if !stat.success() {
+        return Err(Error::Generic(format!("pip install failed with status {stat}")));
+    }
+
+    let stat =
+        Command::new(py_path).args(["-m", "pip", "install", "-r"]).arg(src_reqs_path).status()?;
+    if !stat.success() {
+        return Err(Error::Generic(format!(
+            "failed to install requirements at {}",
+            src_reqs_path.display()
+        )));
+    }
+    fs::copy(src_reqs_path, dst_reqs_path)?;
+    assert_eq!(
+        fs::read_to_string(src_reqs_path).unwrap(),
+        fs::read_to_string(dst_reqs_path).unwrap()
+    );
+    Ok(())
 }
 
 /// Given a binary (e.g. `black`, `ruff`) initialize it in the venv and return its path
