@@ -140,6 +140,8 @@ fn long_line_is_ok(extension: &str, is_error_code: bool, max_columns: usize, lin
         "md" if !is_error_code => true,
         // HACK(Ezrashaw): there is no way to split a markdown header over multiple lines
         "md" if line == INTERNAL_COMPILER_DOCS_LINE => true,
+        // Python files are handled by `black`
+        "py" => true,
         _ => line_is_url(is_error_code, max_columns, line) || should_ignore(line),
     }
 }
