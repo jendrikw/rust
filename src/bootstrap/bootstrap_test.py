@@ -16,6 +16,7 @@ import configure
 
 class VerifyTestCase(unittest.TestCase):
     """Test Case for verify"""
+
     def setUp(self):
         self.container = tempfile.mkdtemp()
         self.src = os.path.join(self.container, "src.txt")
@@ -43,14 +44,14 @@ class VerifyTestCase(unittest.TestCase):
 
 class ProgramOutOfDate(unittest.TestCase):
     """Test if a program is out of date"""
+
     def setUp(self):
         self.container = tempfile.mkdtemp()
         os.mkdir(os.path.join(self.container, "stage0"))
         self.build = bootstrap.RustBuild()
         self.build.date = "2017-06-15"
         self.build.build_dir = self.container
-        self.rustc_stamp_path = os.path.join(self.container, "stage0",
-                                             ".rustc-stamp")
+        self.rustc_stamp_path = os.path.join(self.container, "stage0", ".rustc-stamp")
         self.key = self.build.date + str(None)
 
     def tearDown(self):
@@ -72,11 +73,14 @@ class ProgramOutOfDate(unittest.TestCase):
         """Return False both dates match"""
         with open(self.rustc_stamp_path, "w") as rustc_stamp:
             rustc_stamp.write("2017-06-15None")
-        self.assertFalse(self.build.program_out_of_date(self.rustc_stamp_path, self.key))
+        self.assertFalse(
+            self.build.program_out_of_date(self.rustc_stamp_path, self.key)
+        )
 
 
 class GenerateAndParseConfig(unittest.TestCase):
     """Test that we can serialize and deserialize a config.toml file"""
+
     def serialize_and_parse(self, args):
         from io import StringIO
 
@@ -88,46 +92,64 @@ class GenerateAndParseConfig(unittest.TestCase):
 
         try:
             import tomllib
+
             # Verify this is actually valid TOML.
             tomllib.loads(build.config_toml)
         except ImportError:
-            print("warning: skipping TOML validation, need at least python 3.11", file=sys.stderr)
+            print(
+                "warning: skipping TOML validation, need at least python 3.11",
+                file=sys.stderr,
+            )
         return build
 
     def test_no_args(self):
         build = self.serialize_and_parse([])
-        self.assertEqual(build.get_toml("changelog-seen"), '2')
-        self.assertEqual(build.get_toml("profile"), 'user')
+        self.assertEqual(build.get_toml("changelog-seen"), "2")
+        self.assertEqual(build.get_toml("profile"), "user")
         self.assertIsNone(build.get_toml("llvm.download-ci-llvm"))
 
     def test_set_section(self):
         build = self.serialize_and_parse(["--set", "llvm.download-ci-llvm"])
-        self.assertEqual(build.get_toml("download-ci-llvm", section="llvm"), 'true')
+        self.assertEqual(build.get_toml("download-ci-llvm", section="llvm"), "true")
 
     def test_set_target(self):
-        build = self.serialize_and_parse(["--set", "target.x86_64-unknown-linux-gnu.cc=gcc"])
-        self.assertEqual(build.get_toml("cc", section="target.x86_64-unknown-linux-gnu"), 'gcc')
+        build = self.serialize_and_parse(
+            ["--set", "target.x86_64-unknown-linux-gnu.cc=gcc"]
+        )
+        self.assertEqual(
+            build.get_toml("cc", section="target.x86_64-unknown-linux-gnu"), "gcc"
+        )
 
     def test_set_top_level(self):
         build = self.serialize_and_parse(["--set", "profile=compiler"])
-        self.assertEqual(build.get_toml("profile"), 'compiler')
+        self.assertEqual(build.get_toml("profile"), "compiler")
 
     def test_set_codegen_backends(self):
         build = self.serialize_and_parse(["--set", "rust.codegen-backends=cranelift"])
-        self.assertNotEqual(build.config_toml.find("codegen-backends = ['cranelift']"), -1)
-        build = self.serialize_and_parse(["--set", "rust.codegen-backends=cranelift,llvm"])
-        self.assertNotEqual(build.config_toml.find("codegen-backends = ['cranelift', 'llvm']"), -1)
+        self.assertNotEqual(
+            build.config_toml.find("codegen-backends = ['cranelift']"), -1
+        )
+        build = self.serialize_and_parse(
+            ["--set", "rust.codegen-backends=cranelift,llvm"]
+        )
+        self.assertNotEqual(
+            build.config_toml.find("codegen-backends = ['cranelift', 'llvm']"), -1
+        )
         build = self.serialize_and_parse(["--enable-full-tools"])
         self.assertNotEqual(build.config_toml.find("codegen-backends = ['llvm']"), -1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     SUITE = unittest.TestSuite()
     TEST_LOADER = unittest.TestLoader()
     SUITE.addTest(doctest.DocTestSuite(bootstrap))
-    SUITE.addTests([
-        TEST_LOADER.loadTestsFromTestCase(VerifyTestCase),
-        TEST_LOADER.loadTestsFromTestCase(GenerateAndParseConfig),
-        TEST_LOADER.loadTestsFromTestCase(ProgramOutOfDate)])
+    SUITE.addTests(
+        [
+            TEST_LOADER.loadTestsFromTestCase(VerifyTestCase),
+            TEST_LOADER.loadTestsFromTestCase(GenerateAndParseConfig),
+            TEST_LOADER.loadTestsFromTestCase(ProgramOutOfDate),
+        ]
+    )
 
     RUNNER = unittest.TextTestRunner(stream=sys.stdout, verbosity=2)
     result = RUNNER.run(SUITE)

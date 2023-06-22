@@ -16,13 +16,19 @@ def find_redirect_map_file(folder, errors):
                 expected = json.load(f)
             for key in expected:
                 if expected[key] != data.get(key):
-                    errors.append("Expected `{}` for key `{}`, found: `{}`".format(
-                        expected[key], key, data.get(key)))
+                    errors.append(
+                        "Expected `{}` for key `{}`, found: `{}`".format(
+                            expected[key], key, data.get(key)
+                        )
+                    )
                 else:
                     del data[key]
             for key in data:
-                errors.append("Extra data not expected: key: `{}`, data: `{}`".format(
-                    key, data[key]))
+                errors.append(
+                    "Extra data not expected: key: `{}`, data: `{}`".format(
+                        key, data[key]
+                    )
+                )
             return True
     return False
 

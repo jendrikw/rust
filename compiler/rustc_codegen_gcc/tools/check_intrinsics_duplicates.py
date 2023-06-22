@@ -38,8 +38,10 @@ def check_duplicates():
                 if line == "};":
                     # We're done!
                     if found == 0:
-                        print("No intrinsics found in manual code even though we found the "
-                            "marker... Aborting...")
+                        print(
+                            "No intrinsics found in manual code even though we found the "
+                            "marker... Aborting..."
+                        )
                         return 1
                     for error in errors:
                         print("ERROR => {}".format(error))
@@ -50,12 +52,17 @@ def check_duplicates():
                 found += 1
                 if parts[1] in intrinsics_map:
                     if parts[3] != intrinsics_map[parts[1]]:
-                        print("Same intrinsics (`{}` at line {}) but different GCC "
+                        print(
+                            "Same intrinsics (`{}` at line {}) but different GCC "
                             "translations: `{}` != `{}`".format(
-                                parts[1], pos, intrinsics_map[parts[1]], parts[3]))
+                                parts[1], pos, intrinsics_map[parts[1]], parts[3]
+                            )
+                        )
                     else:
-                        errors.append("Duplicated intrinsics: `{}` at line {}. Please remove it "
-                            " from manual code".format(parts[1], pos))
+                        errors.append(
+                            "Duplicated intrinsics: `{}` at line {}. Please remove it "
+                            " from manual code".format(parts[1], pos)
+                        )
             # Weird but whatever...
             return 1 if len(errors) != 0 else 0
         pos += 1

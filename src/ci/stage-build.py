@@ -18,8 +18,17 @@ import traceback
 import urllib.request
 from io import StringIO
 from pathlib import Path
-from typing import Callable, ContextManager, Dict, Iterable, Iterator, List, Optional, \
-    Tuple, Union
+from typing import (
+    Callable,
+    ContextManager,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 PGO_HOST = os.environ["PGO_HOST"]
 
@@ -32,7 +41,7 @@ LLVM_PGO_CRATES = [
     "ripgrep-13.0.0",
     "regex-1.5.5",
     "clap-3.1.6",
-    "hyper-0.14.18"
+    "hyper-0.14.18",
 ]
 
 RUSTC_PGO_CRATES = [
@@ -43,7 +52,7 @@ RUSTC_PGO_CRATES = [
     "match-stress",
     "tuple-stress",
     "diesel-1.4.8",
-    "bitmaps-3.1.0"
+    "bitmaps-3.1.0",
 ]
 
 LLVM_BOLT_CRATES = LLVM_PGO_CRATES
@@ -150,10 +159,10 @@ class LinuxPipeline(Pipeline):
         cmd(["chown", "-R", f"{getpass.getuser()}:", self.rustc_perf_dir()])
 
         with change_cwd(self.rustc_perf_dir()):
-            cmd([self.cargo_stage_0(), "build", "-p", "collector"], env=dict(
-                RUSTC=str(self.rustc_stage_0()),
-                RUSTC_BOOTSTRAP="1"
-            ))
+            cmd(
+                [self.cargo_stage_0(), "build", "-p", "collector"],
+                env=dict(RUSTC=str(self.rustc_stage_0()), RUSTC_BOOTSTRAP="1"),
+            )
 
     def supports_bolt(self) -> bool:
         return True
@@ -199,7 +208,7 @@ class WindowsPipeline(Pipeline):
         def download_rustc_perf():
             download_file(
                 f"https://github.com/rust-lang/rustc-perf/archive/{perf_commit}.zip",
-                rustc_perf_zip_path
+                rustc_perf_zip_path,
             )
             with change_cwd(self.opt_artifacts()):
                 unpack_archive(rustc_perf_zip_path)
@@ -209,10 +218,10 @@ class WindowsPipeline(Pipeline):
         retry_action(download_rustc_perf, "Download rustc-perf")
 
         with change_cwd(self.rustc_perf_dir()):
-            cmd([self.cargo_stage_0(), "build", "-p", "collector"], env=dict(
-                RUSTC=str(self.rustc_stage_0()),
-                RUSTC_BOOTSTRAP="1"
-            ))
+            cmd(
+                [self.cargo_stage_0(), "build", "-p", "collector"],
+                env=dict(RUSTC=str(self.rustc_stage_0()), RUSTC_BOOTSTRAP="1"),
+            )
 
     def rustc_profile_template_path(self) -> Path:
         """
@@ -239,13 +248,14 @@ def get_timestamp() -> float:
 Duration = float
 
 
-def iterate_timers(timer: "Timer", name: str, level: int = 0) -> Iterator[
-    Tuple[int, str, Duration]]:
+def iterate_timers(
+    timer: "Timer", name: str, level: int = 0
+) -> Iterator[Tuple[int, str, Duration]]:
     """
     Hierarchically iterate the children of a timer, in a depth-first order.
     """
     yield (level, name, timer.total_duration())
-    for (child_name, child_timer) in timer.children:
+    for child_name, child_timer in timer.children:
         yield from iterate_timers(child_timer, child_name, level=level + 1)
 
 
@@ -276,7 +286,9 @@ class Timer:
             end = get_timestamp()
             duration = end - start
 
-            child_timer.duration_excluding_children = duration - child_timer.total_duration()
+            child_timer.duration_excluding_children = (
+                duration - child_timer.total_duration()
+            )
             self.add_child(name, child_timer)
             if exc is None:
                 LOGGER.info(f"Section `{full_name}` ended: OK ({duration:.2f}s)")
@@ -286,15 +298,18 @@ class Timer:
 
     def total_duration(self) -> Duration:
         return self.duration_excluding_children + sum(
-            c.total_duration() for (_, c) in self.children)
+            c.total_duration() for (_, c) in self.children
+        )
 
     def has_children(self) -> bool:
         return len(self.children) > 0
 
     def print_stats(self):
         rows = []
-        for (child_name, child_timer) in self.children:
-            for (level, name, duration) in iterate_timers(child_timer, child_name, level=0):
+        for child_name, child_timer in self.children:
+            for level, name, duration in iterate_timers(
+                child_timer, child_name, level=0
+            ):
                 label = f"{'  ' * level}{name}:"
                 rows.append((label, duration))
 
@@ -306,14 +321,16 @@ class Timer:
         rows.append((total_duration_label, humantime(total_duration)))
 
         space_after_label = 2
-        max_label_length = max(16, max(len(label) for (label, _) in rows)) + space_after_label
+        max_label_length = (
+            max(16, max(len(label) for (label, _) in rows)) + space_after_label
+        )
 
         table_width = max_label_length + 23
         divider = "-" * table_width
 
         with StringIO() as output:
             print(divider, file=output)
-            for (label, duration) in rows:
+            for label, duration in rows:
                 if isinstance(duration, Duration):
                     pct = (duration / total_duration) * 100
                     value = f"{duration:>12.2f}s ({pct:>5.2f}%)"
@@ -374,7 +391,7 @@ def load_last_metrics(path: Path) -> BuildStep:
     return BuildStep(
         type="root",
         children=children,
-        duration=invocation.get("duration_including_children_sec", 0)
+        duration=invocation.get("duration_including_children_sec", 0),
     )
 
 
@@ -425,7 +442,9 @@ def delete_directory(path: Path):
 
 def unpack_archive(archive: Path, target_dir: Optional[Path] = None):
     LOGGER.info(f"Unpacking archive `{archive}`")
-    shutil.unpack_archive(str(archive), extract_dir=str(target_dir) if target_dir is not None else None)
+    shutil.unpack_archive(
+        str(archive), extract_dir=str(target_dir) if target_dir is not None else None
+    )
 
 
 def download_file(src: str, target: Path):
@@ -440,16 +459,16 @@ def retry_action(action, name: str, max_fails: int = 5):
         try:
             action()
             return
-        except BaseException: # also catch ctrl+c/sysexit
+        except BaseException:  # also catch ctrl+c/sysexit
             LOGGER.error(f"Action `{name}` has failed\n{traceback.format_exc()}")
 
     raise Exception(f"Action `{name}` has failed after {max_fails} attempts")
 
 
 def cmd(
-        args: List[Union[str, Path]],
-        env: Optional[Dict[str, str]] = None,
-        output_path: Optional[Path] = None
+    args: List[Union[str, Path]],
+    env: Optional[Dict[str, str]] = None,
+    output_path: Optional[Path] = None,
 ):
     args = [str(arg) for arg in args]
 
@@ -467,12 +486,7 @@ def cmd(
 
     if output_path is not None:
         with open(output_path, "w") as f:
-            return subprocess.run(
-                args,
-                env=environment,
-                check=True,
-                stdout=f
-            )
+            return subprocess.run(args, env=environment, check=True, stdout=f)
     return subprocess.run(args, env=environment, check=True)
 
 
@@ -496,9 +510,7 @@ class DefaultBenchmarkRunner(BenchmarkRunner):
             profiles=["Check", "Debug", "Opt"],
             scenarios=["All"],
             crates=RUSTC_PGO_CRATES,
-            env=dict(
-                LLVM_PROFILE_FILE=str(pipeline.rustc_profile_template_path())
-            )
+            env=dict(LLVM_PROFILE_FILE=str(pipeline.rustc_profile_template_path())),
         )
 
     def run_llvm(self, pipeline: Pipeline):
@@ -506,7 +518,7 @@ class DefaultBenchmarkRunner(BenchmarkRunner):
             pipeline,
             profiles=["Debug", "Opt"],
             scenarios=["Full"],
-            crates=LLVM_PGO_CRATES
+            crates=LLVM_PGO_CRATES,
         )
 
     def run_bolt(self, pipeline: Pipeline):
@@ -514,68 +526,93 @@ class DefaultBenchmarkRunner(BenchmarkRunner):
             pipeline,
             profiles=["Check", "Debug", "Opt"],
             scenarios=["Full"],
-            crates=LLVM_BOLT_CRATES
+            crates=LLVM_BOLT_CRATES,
         )
 
 
 def run_compiler_benchmarks(
-        pipeline: Pipeline,
-        profiles: List[str],
-        scenarios: List[str],
-        crates: List[str],
-        env: Optional[Dict[str, str]] = None
+    pipeline: Pipeline,
+    profiles: List[str],
+    scenarios: List[str],
+    crates: List[str],
+    env: Optional[Dict[str, str]] = None,
 ):
     env = env if env is not None else {}
 
     # Compile libcore, both in opt-level=0 and opt-level=3
     with change_cwd(pipeline.build_root()):
-        cmd([
-            pipeline.rustc_stage_2(),
-            "--edition", "2021",
-            "--crate-type", "lib",
-            str(pipeline.checkout_path() / "library/core/src/lib.rs"),
-            "--out-dir", pipeline.opt_artifacts()
-        ], env=dict(RUSTC_BOOTSTRAP="1", **env))
+        cmd(
+            [
+                pipeline.rustc_stage_2(),
+                "--edition",
+                "2021",
+                "--crate-type",
+                "lib",
+                str(pipeline.checkout_path() / "library/core/src/lib.rs"),
+                "--out-dir",
+                pipeline.opt_artifacts(),
+            ],
+            env=dict(RUSTC_BOOTSTRAP="1", **env),
+        )
 
-        cmd([
-            pipeline.rustc_stage_2(),
-            "--edition", "2021",
-            "--crate-type", "lib",
-            "-Copt-level=3",
-            str(pipeline.checkout_path() / "library/core/src/lib.rs"),
-            "--out-dir", pipeline.opt_artifacts()
-        ], env=dict(RUSTC_BOOTSTRAP="1", **env))
+        cmd(
+            [
+                pipeline.rustc_stage_2(),
+                "--edition",
+                "2021",
+                "--crate-type",
+                "lib",
+                "-Copt-level=3",
+                str(pipeline.checkout_path() / "library/core/src/lib.rs"),
+                "--out-dir",
+                pipeline.opt_artifacts(),
+            ],
+            env=dict(RUSTC_BOOTSTRAP="1", **env),
+        )
 
     # Run rustc-perf benchmarks
     # Benchmark using profile_local with eprintln, which essentially just means
     # don't actually benchmark -- just make sure we run rustc a bunch of times.
     with change_cwd(pipeline.rustc_perf_dir()):
-        cmd([
-            pipeline.cargo_stage_0(),
-            "run",
-            "-p", "collector", "--bin", "collector", "--",
-            "profile_local", "eprintln",
-            pipeline.rustc_stage_2(),
-            "--id", "Test",
-            "--cargo", pipeline.cargo_stage_0(),
-            "--profiles", ",".join(profiles),
-            "--scenarios", ",".join(scenarios),
-            "--include", ",".join(crates)
-        ], env=dict(
-            RUST_LOG="collector=debug",
-            RUSTC=str(pipeline.rustc_stage_0()),
-            RUSTC_BOOTSTRAP="1",
-            **env
-        ))
+        cmd(
+            [
+                pipeline.cargo_stage_0(),
+                "run",
+                "-p",
+                "collector",
+                "--bin",
+                "collector",
+                "--",
+                "profile_local",
+                "eprintln",
+                pipeline.rustc_stage_2(),
+                "--id",
+                "Test",
+                "--cargo",
+                pipeline.cargo_stage_0(),
+                "--profiles",
+                ",".join(profiles),
+                "--scenarios",
+                ",".join(scenarios),
+                "--include",
+                ",".join(crates),
+            ],
+            env=dict(
+                RUST_LOG="collector=debug",
+                RUSTC=str(pipeline.rustc_stage_0()),
+                RUSTC_BOOTSTRAP="1",
+                **env,
+            ),
+        )
 
 
 # https://stackoverflow.com/a/31631711/1107768
 def format_bytes(size: int) -> str:
     """Return the given bytes as a human friendly KiB, MiB or GiB string."""
     KB = 1024
-    MB = KB ** 2  # 1,048,576
-    GB = KB ** 3  # 1,073,741,824
-    TB = KB ** 4  # 1,099,511,627,776
+    MB = KB**2  # 1,048,576
+    GB = KB**3  # 1,073,741,824
+    TB = KB**4  # 1,099,511,627,776
 
     if size < KB:
         return f"{size} B"
@@ -613,7 +650,9 @@ def get_path_prefix_size(path: Path) -> int:
     return sum(Path(p).stat().st_size for p in glob.glob(f"{path}*"))
 
 
-def get_files(directory: Path, filter: Optional[Callable[[Path], bool]] = None) -> Iterable[Path]:
+def get_files(
+    directory: Path, filter: Optional[Callable[[Path], bool]] = None
+) -> Iterable[Path]:
     for file in os.listdir(directory):
         path = directory / file
         if filter is None or filter(path):
@@ -621,24 +660,31 @@ def get_files(directory: Path, filter: Optional[Callable[[Path], bool]] = None) 
 
 
 def bootstrap_build(
-        pipeline: Pipeline,
-        args: List[str],
-        env: Optional[Dict[str, str]] = None,
-        targets: Iterable[str] = ("library/std", )
+    pipeline: Pipeline,
+    args: List[str],
+    env: Optional[Dict[str, str]] = None,
+    targets: Iterable[str] = ("library/std",),
 ):
     if env is None:
         env = {}
     else:
         env = dict(env)
     env["RUST_BACKTRACE"] = "1"
-    arguments = [
-                    sys.executable,
-                    pipeline.checkout_path() / "x.py",
-                    "build",
-                    "--target", PGO_HOST,
-                    "--host", PGO_HOST,
-                    "--stage", "2",
-                    ] + list(targets) + args
+    arguments = (
+        [
+            sys.executable,
+            pipeline.checkout_path() / "x.py",
+            "build",
+            "--target",
+            PGO_HOST,
+            "--host",
+            PGO_HOST,
+            "--stage",
+            "2",
+        ]
+        + list(targets)
+        + args
+    )
     cmd(arguments, env=env)
 
 
@@ -658,17 +704,21 @@ def gather_llvm_profiles(pipeline: Pipeline, runner: BenchmarkRunner):
 
     profile_path = pipeline.llvm_profile_merged_file()
     LOGGER.info(f"Merging LLVM PGO profiles to {profile_path}")
-    cmd([
-        pipeline.downloaded_llvm_dir() / "bin" / "llvm-profdata",
-        "merge",
-        "-o", profile_path,
-        pipeline.llvm_profile_dir_root()
-    ])
+    cmd(
+        [
+            pipeline.downloaded_llvm_dir() / "bin" / "llvm-profdata",
+            "merge",
+            "-o",
+            profile_path,
+            pipeline.llvm_profile_dir_root(),
+        ]
+    )
 
     LOGGER.info("LLVM PGO statistics")
     LOGGER.info(f"{profile_path}: {format_bytes(get_path_size(profile_path))}")
     LOGGER.info(
-        f"{pipeline.llvm_profile_dir_root()}: {format_bytes(get_path_size(pipeline.llvm_profile_dir_root()))}")
+        f"{pipeline.llvm_profile_dir_root()}: {format_bytes(get_path_size(pipeline.llvm_profile_dir_root()))}"
+    )
     LOGGER.info(f"Profile file count: {count_files(pipeline.llvm_profile_dir_root())}")
 
     # We don't need the individual .profraw files now that they have been merged
@@ -683,17 +733,21 @@ def gather_rustc_profiles(pipeline: Pipeline, runner: BenchmarkRunner):
 
     profile_path = pipeline.rustc_profile_merged_file()
     LOGGER.info(f"Merging Rustc PGO profiles to {profile_path}")
-    cmd([
-        pipeline.build_artifacts() / "llvm" / "bin" / "llvm-profdata",
-        "merge",
-        "-o", profile_path,
-        pipeline.rustc_profile_dir_root()
-    ])
+    cmd(
+        [
+            pipeline.build_artifacts() / "llvm" / "bin" / "llvm-profdata",
+            "merge",
+            "-o",
+            profile_path,
+            pipeline.rustc_profile_dir_root(),
+        ]
+    )
 
     LOGGER.info("Rustc PGO statistics")
     LOGGER.info(f"{profile_path}: {format_bytes(get_path_size(profile_path))}")
     LOGGER.info(
-        f"{pipeline.rustc_profile_dir_root()}: {format_bytes(get_path_size(pipeline.rustc_profile_dir_root()))}")
+        f"{pipeline.rustc_profile_dir_root()}: {format_bytes(get_path_size(pipeline.rustc_profile_dir_root()))}"
+    )
     LOGGER.info(f"Profile file count: {count_files(pipeline.rustc_profile_dir_root())}")
 
     # We don't need the individual .profraw files now that they have been merged
@@ -711,15 +765,21 @@ def gather_llvm_bolt_profiles(pipeline: Pipeline, runner: BenchmarkRunner):
     LOGGER.info(f"Merging LLVM BOLT profiles to {merged_profile_path}")
 
     profile_files = sorted(glob.glob(f"{profile_files_path}*"))
-    cmd([
-        "merge-fdata",
-        *profile_files,
-    ], output_path=merged_profile_path)
+    cmd(
+        [
+            "merge-fdata",
+            *profile_files,
+        ],
+        output_path=merged_profile_path,
+    )
 
     LOGGER.info("LLVM BOLT statistics")
-    LOGGER.info(f"{merged_profile_path}: {format_bytes(get_path_size(merged_profile_path))}")
     LOGGER.info(
-        f"{profile_files_path}: {format_bytes(get_path_prefix_size(profile_files_path))}")
+        f"{merged_profile_path}: {format_bytes(get_path_size(merged_profile_path))}"
+    )
+    LOGGER.info(
+        f"{profile_files_path}: {format_bytes(get_path_prefix_size(profile_files_path))}"
+    )
     LOGGER.info(f"Profile file count: {count_files_with_prefix(profile_files_path)}")
 
 
@@ -756,7 +816,8 @@ def print_free_disk_space(pipeline: Pipeline):
     free = usage.free
 
     logging.info(
-        f"Free disk space: {format_bytes(free)} out of total {format_bytes(total)} ({(used / total) * 100:.2f}% used)")
+        f"Free disk space: {format_bytes(free)} out of total {format_bytes(total)} ({(used / total) * 100:.2f}% used)"
+    )
 
 
 def log_metrics(step: BuildStep):
@@ -770,7 +831,7 @@ def log_metrics(step: BuildStep):
     visit(step, 0)
 
     output = StringIO()
-    for (level, step) in substeps:
+    for level, step in substeps:
         label = f"{'.' * level}{step.type}"
         print(f"{label:<65}{step.duration:>8.2f}s", file=output)
     logging.info(f"Build step durations\n{output.getvalue()}")
@@ -817,14 +878,16 @@ def run_tests(pipeline: Pipeline):
 
     # Extract rustc, libstd, cargo and src archives to create the optimized sysroot
     rustc_dir = extract_dist_dir(f"rustc-nightly-{PGO_HOST}") / "rustc"
-    libstd_dir = extract_dist_dir(f"rust-std-nightly-{PGO_HOST}") / f"rust-std-{PGO_HOST}"
+    libstd_dir = (
+        extract_dist_dir(f"rust-std-nightly-{PGO_HOST}") / f"rust-std-{PGO_HOST}"
+    )
     cargo_dir = extract_dist_dir(f"cargo-nightly-{PGO_HOST}") / "cargo"
     extracted_src_dir = extract_dist_dir("rust-src-nightly") / "rust-src"
 
     # We need to manually copy libstd to the extracted rustc sysroot
     shutil.copytree(
         libstd_dir / "lib" / "rustlib" / PGO_HOST / "lib",
-        rustc_dir / "lib" / "rustlib" / PGO_HOST / "lib"
+        rustc_dir / "lib" / "rustlib" / PGO_HOST / "lib",
     )
 
     # Extract sources - they aren't in the `rustc-nightly-{host}` tarball, so we need to manually copy libstd
@@ -832,7 +895,7 @@ def run_tests(pipeline: Pipeline):
     # works correctly.
     shutil.copytree(
         extracted_src_dir / "lib" / "rustlib" / "src",
-        rustc_dir / "lib" / "rustlib" / "src"
+        rustc_dir / "lib" / "rustlib" / "src",
     )
 
     rustc_path = rustc_dir / "bin" / f"rustc{pipeline.executable_extension()}"
@@ -860,7 +923,8 @@ download-ci-llvm = true
         sys.executable,
         pipeline.checkout_path() / "x.py",
         "test",
-        "--stage", "0",
+        "--stage",
+        "0",
         "tests/assembly",
         "tests/codegen",
         "tests/codegen-units",
@@ -869,15 +933,18 @@ download-ci-llvm = true
         "tests/pretty",
         "tests/run-pass-valgrind",
         "tests/ui",
-        ]
+    ]
     for test_path in pipeline.skipped_tests():
         args.extend(["--exclude", test_path])
-    cmd(args=args, env=dict(
-        COMPILETEST_FORCE_STAGE0="1"
-    ))
+    cmd(args=args, env=dict(COMPILETEST_FORCE_STAGE0="1"))
 
 
-def execute_build_pipeline(timer: Timer, pipeline: Pipeline, runner: BenchmarkRunner, dist_build_args: List[str]):
+def execute_build_pipeline(
+    timer: Timer,
+    pipeline: Pipeline,
+    runner: BenchmarkRunner,
+    dist_build_args: List[str],
+):
     # Clear and prepare tmp directory
     shutil.rmtree(pipeline.opt_artifacts(), ignore_errors=True)
     os.makedirs(pipeline.opt_artifacts(), exist_ok=True)
@@ -891,11 +958,13 @@ def execute_build_pipeline(timer: Timer, pipeline: Pipeline, runner: BenchmarkRu
     can cause issues.
     """
     with timer.section("Stage 1 (rustc PGO)") as stage1:
-        with stage1.section("Build PGO instrumented rustc and LLVM") as rustc_pgo_instrument:
-            bootstrap_build(pipeline, args=[
-                "--rust-profile-generate",
-                pipeline.rustc_profile_dir_root()
-            ])
+        with stage1.section(
+            "Build PGO instrumented rustc and LLVM"
+        ) as rustc_pgo_instrument:
+            bootstrap_build(
+                pipeline,
+                args=["--rust-profile-generate", pipeline.rustc_profile_dir_root()],
+            )
             record_metrics(pipeline, rustc_pgo_instrument)
 
         with stage1.section("Gather profiles"):
@@ -903,15 +972,12 @@ def execute_build_pipeline(timer: Timer, pipeline: Pipeline, runner: BenchmarkRu
         print_free_disk_space(pipeline)
 
         with stage1.section("Build PGO optimized rustc") as rustc_pgo_use:
-            bootstrap_build(pipeline, args=[
-                "--rust-profile-use",
-                pipeline.rustc_profile_merged_file()
-            ])
+            bootstrap_build(
+                pipeline,
+                args=["--rust-profile-use", pipeline.rustc_profile_merged_file()],
+            )
             record_metrics(pipeline, rustc_pgo_use)
-        dist_build_args += [
-            "--rust-profile-use",
-            pipeline.rustc_profile_merged_file()
-        ]
+        dist_build_args += ["--rust-profile-use", pipeline.rustc_profile_merged_file()]
 
     """
     Stage 2: Gather LLVM PGO profiles
@@ -921,14 +987,20 @@ def execute_build_pipeline(timer: Timer, pipeline: Pipeline, runner: BenchmarkRu
         clear_llvm_files(pipeline)
 
         with stage2.section("Build PGO instrumented LLVM") as llvm_pgo_instrument:
-            bootstrap_build(pipeline, args=[
-                "--llvm-profile-generate",
-                # We want to keep the already built PGO-optimized `rustc`.
-                "--keep-stage", "0",
-                "--keep-stage", "1"
-            ], env=dict(
-                LLVM_PROFILE_DIR=str(pipeline.llvm_profile_dir_root() / "prof-%p")
-            ))
+            bootstrap_build(
+                pipeline,
+                args=[
+                    "--llvm-profile-generate",
+                    # We want to keep the already built PGO-optimized `rustc`.
+                    "--keep-stage",
+                    "0",
+                    "--keep-stage",
+                    "1",
+                ],
+                env=dict(
+                    LLVM_PROFILE_DIR=str(pipeline.llvm_profile_dir_root() / "prof-%p")
+                ),
+            )
             record_metrics(pipeline, llvm_pgo_instrument)
 
         with stage2.section("Gather profiles"):
@@ -954,14 +1026,19 @@ def execute_build_pipeline(timer: Timer, pipeline: Pipeline, runner: BenchmarkRu
     if pipeline.supports_bolt():
         with timer.section("Stage 3 (LLVM BOLT)") as stage3:
             with stage3.section("Build BOLT instrumented LLVM") as llvm_bolt_instrument:
-                bootstrap_build(pipeline, args=[
-                    "--llvm-profile-use",
-                    pipeline.llvm_profile_merged_file(),
-                    "--llvm-bolt-profile-generate",
-                    # We want to keep the already built PGO-optimized `rustc`.
-                    "--keep-stage", "0",
-                    "--keep-stage", "1"
-                ])
+                bootstrap_build(
+                    pipeline,
+                    args=[
+                        "--llvm-profile-use",
+                        pipeline.llvm_profile_merged_file(),
+                        "--llvm-bolt-profile-generate",
+                        # We want to keep the already built PGO-optimized `rustc`.
+                        "--keep-stage",
+                        "0",
+                        "--keep-stage",
+                        "1",
+                    ],
+                )
                 record_metrics(pipeline, llvm_bolt_instrument)
 
             with stage3.section("Gather profiles"):
@@ -969,15 +1046,12 @@ def execute_build_pipeline(timer: Timer, pipeline: Pipeline, runner: BenchmarkRu
 
             dist_build_args += [
                 "--llvm-bolt-profile-use",
-                pipeline.llvm_bolt_profile_merged_file()
+                pipeline.llvm_bolt_profile_merged_file(),
             ]
             print_free_disk_space(pipeline)
 
     # We want to keep the already built PGO-optimized `rustc`.
-    dist_build_args += [
-        "--keep-stage", "0",
-        "--keep-stage", "1"
-    ]
+    dist_build_args += ["--keep-stage", "0", "--keep-stage", "1"]
 
     """
     Final stage: Build PGO optimized rustc + PGO/BOLT optimized LLVM
@@ -1006,8 +1080,16 @@ def run(runner: BenchmarkRunner):
     # Skip components that are not needed for try builds to speed them up
     if is_try_build():
         LOGGER.info("Skipping building of unimportant components for a try build")
-        for target in ("rust-docs", "rustc-docs", "rust-docs-json", "rust-analyzer",
-                       "rustc-src", "clippy", "miri", "rustfmt"):
+        for target in (
+            "rust-docs",
+            "rustc-docs",
+            "rust-docs-json",
+            "rust-analyzer",
+            "rustc-src",
+            "clippy",
+            "miri",
+            "rustfmt",
+        ):
             build_args.extend(["--exclude", target])
 
     timer = Timer()
