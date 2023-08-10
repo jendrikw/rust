@@ -13,6 +13,7 @@ trait GeneralFormat: PartialOrd {
 macro_rules! impl_general_format {
     ($($t:ident)*) => {
         $(impl GeneralFormat for $t {
+            #[inline]
             fn already_rounded_value_should_use_exponential(&self) -> bool {
                 let abs = $t::abs_private(*self);
                 (abs != 0.0 && abs < 1e-4) || abs >= 1e+16
@@ -79,6 +80,7 @@ where
     unsafe { fmt.pad_formatted_parts(&formatted) }
 }
 
+#[inline]
 fn float_to_decimal_display<T>(fmt: &mut Formatter<'_>, num: &T) -> Result
 where
     T: flt2dec::DecodableFloat,
@@ -154,6 +156,7 @@ where
 }
 
 // Common code of floating point LowerExp and UpperExp.
+#[inline]
 fn float_to_exponential_common<T>(fmt: &mut Formatter<'_>, num: &T, upper: bool) -> Result
 where
     T: flt2dec::DecodableFloat,
@@ -172,6 +175,7 @@ where
     }
 }
 
+#[inline]
 fn float_to_general_debug<T>(fmt: &mut Formatter<'_>, num: &T) -> Result
 where
     T: flt2dec::DecodableFloat + GeneralFormat,

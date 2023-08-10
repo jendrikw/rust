@@ -374,6 +374,7 @@ impl f128 {
     // This doesn't actually return a right answer for NaN on purpose,
     // seeing as how it cannot correctly discern between a floating point NaN,
     // and some normal floating point numbers truncated from an x87 FPU.
+    #[inline]
     #[rustc_const_unstable(feature = "const_float_classify", issue = "72505")]
     const unsafe fn partial_classify(self) -> FpCategory {
         // SAFETY: The caller is not asking questions for which this will tell lies.
@@ -389,6 +390,7 @@ impl f128 {
     // This operates on bits, and only bits, so it can ignore concerns about weird FPUs.
     // FIXME(jubilee): In a just world, this would be the entire impl for classify,
     // plus a transmute. We do not live in a just world, but we can make it more so.
+    #[inline]
     #[rustc_const_unstable(feature = "const_float_classify", issue = "72505")]
     const fn classify_bits(b: u128) -> FpCategory {
         match (b & Self::MAN_MASK, b & Self::EXP_MASK) {
