@@ -101,7 +101,6 @@ pub mod consts {
     pub const LN_10: f16 = 2.30258509299404568401799145468436421_f16;
 }
 
-// TODO: this is probably all wrong
 #[cfg(not(test))]
 impl f16 {
     /// The radix or base of the internal representation of `f16`.
