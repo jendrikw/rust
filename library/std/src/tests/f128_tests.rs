@@ -2,6 +2,22 @@ use crate::f128::consts;
 use crate::num::FpCategory as Fp;
 use crate::num::*;
 
+// const F126_APPROX: f128 = 1e-8;
+
+const TINY_BITS: u128 = 0x1;
+const TINY_UP_BITS: u128 = 0x2;
+const MAX_DOWN_BITS: u128 = 0x7ffeffffffffffffffffffffffffffff;
+const LARGEST_SUBNORMAL_BITS: u128 = 0x0000ffffffffffffffffffffffffffff;
+const SMALLEST_NORMAL_BITS: u128 = 0x00010000000000000000000000000000;
+const NAN_MASK1: u128 = 0x0000aaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+const NAN_MASK2: u128 = 0x00005555555555555555555555555555;
+
+#[test]
+fn test_constants() {
+    assert_eq!(f128::MIN.to_bits(), MAX_DOWN_BITS);
+    assert_eq!(f128::MIN_POSITIVE.to_bits(), SMALLEST_NORMAL_BITS);
+}
+
 #[test]
 fn test_num_f128() {
     test_num(10f128, 2f128);
@@ -331,11 +347,12 @@ macro_rules! assert_f128_biteq {
 #[cfg(not(target_arch = "x86"))]
 #[test]
 fn test_next_up() {
-    let tiny = f128::from_bits(1);
-    let tiny_up = f128::from_bits(2);
-    let max_down = f128::from_bits(0x7f7f_fffe);
-    let largest_subnormal = f128::from_bits(0x007f_ffff);
-    let smallest_normal = f128::from_bits(0x0080_0000);
+    let tiny = f128::from_bits(TINY_BITS);
+    let tiny_up = f128::from_bits(TINY_UP_BITS);
+    let max_down = f128::from_bits(MAX_DOWN_BITS);
+    let largest_subnormal = f128::from_bits(LARGEST_SUBNORMAL_BITS);
+    let smallest_normal = f128::from_bits(SMALLEST_NORMAL_BITS);
+
     assert_f128_biteq!(f128::NEG_INFINITY.next_up(), f128::MIN);
     assert_f128_biteq!(f128::MIN.next_up(), -max_down);
     assert_f128_biteq!((-1.0 - f128::EPSILON).next_up(), -1.0);
@@ -352,8 +369,8 @@ fn test_next_up() {
 
     // Check that NaNs roundtrip.
     let nan0 = f128::NAN;
-    let nan1 = f128::from_bits(f128::NAN.to_bits() ^ 0x002a_aaaa);
-    let nan2 = f128::from_bits(f128::NAN.to_bits() ^ 0x0055_5555);
+    let nan1 = f128::from_bits(f128::NAN.to_bits() ^ NAN_MASK1);
+    let nan2 = f128::from_bits(f128::NAN.to_bits() ^ NAN_MASK2);
     assert_f128_biteq!(nan0.next_up(), nan0);
     assert_f128_biteq!(nan1.next_up(), nan1);
     assert_f128_biteq!(nan2.next_up(), nan2);
@@ -364,11 +381,12 @@ fn test_next_up() {
 #[cfg(not(target_arch = "x86"))]
 #[test]
 fn test_next_down() {
-    let tiny = f128::from_bits(1);
-    let tiny_up = f128::from_bits(2);
-    let max_down = f128::from_bits(0x7f7f_fffe);
-    let largest_subnormal = f128::from_bits(0x007f_ffff);
-    let smallest_normal = f128::from_bits(0x0080_0000);
+    let tiny = f128::from_bits(TINY_BITS);
+    let tiny_up = f128::from_bits(TINY_UP_BITS);
+    let max_down = f128::from_bits(MAX_DOWN_BITS);
+    let largest_subnormal = f128::from_bits(LARGEST_SUBNORMAL_BITS);
+    let smallest_normal = f128::from_bits(SMALLEST_NORMAL_BITS);
+
     assert_f128_biteq!(f128::NEG_INFINITY.next_down(), f128::NEG_INFINITY);
     assert_f128_biteq!(f128::MIN.next_down(), f128::NEG_INFINITY);
     assert_f128_biteq!((-max_down).next_down(), f128::MIN);
@@ -386,8 +404,8 @@ fn test_next_down() {
 
     // Check that NaNs roundtrip.
     let nan0 = f128::NAN;
-    let nan1 = f128::from_bits(f128::NAN.to_bits() ^ 0x002a_aaaa);
-    let nan2 = f128::from_bits(f128::NAN.to_bits() ^ 0x0055_5555);
+    let nan1 = f128::from_bits(f128::NAN.to_bits() ^ NAN_MASK1);
+    let nan2 = f128::from_bits(f128::NAN.to_bits() ^ NAN_MASK2);
     assert_f128_biteq!(nan0.next_down(), nan0);
     assert_f128_biteq!(nan1.next_down(), nan1);
     assert_f128_biteq!(nan2.next_down(), nan2);
@@ -736,8 +754,10 @@ fn test_float_bits_conv() {
 
     // Check that NaNs roundtrip their bits regardless of signaling-ness
     // 0xA is 0b1010; 0x5 is 0b0101 -- so these two together clobbers all the mantissa bits
-    let masked_nan1 = f128::NAN.to_bits() ^ 0x0002AAAAAAAAAAAAAAAAAAAAAAAAAAAA;
-    let masked_nan2 = f128::NAN.to_bits() ^ 0x00015555555555555555555555555555;
+    println!("{:#034x} vs {:#034x}", f128::NAN.to_bits(), f128::NAN.to_bits() ^ 0x0002AAAAAAAAAAAAAAAAAAAAAAAAAAAA);
+    println!("{:#034x} vs {:#034x}", f128::NAN.to_bits(), f128::NAN.to_bits() ^ 0x0002AAAAAAAAAAAAAAAAAAAAAAAAAAAA);
+    let masked_nan1 = f128::NAN.to_bits() ^ NAN_MASK1;
+    let masked_nan2 = f128::NAN.to_bits() ^ NAN_MASK2;
     assert!(f128::from_bits(masked_nan1).is_nan());
     assert!(f128::from_bits(masked_nan2).is_nan());
 

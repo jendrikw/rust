@@ -8,9 +8,17 @@ const F16_APPROX_L2: f16 = 0.01;
 const F16_APPROX_L3: f16 = 0.1;
 const F16_APPROX_L4: f16 = 0.5;
 
+// Smallest number
+const TINY_BITS: u16 = 0x1;
+// Next smallest number
+const TINY_UP_BITS: u16 = 0x2;
+// Exponent = 0b11...10, Full significand. Min val > 0
 const MAX_DOWN_BITS: u16 = 0x7bfe;
+// Zeroed exponent, full significant
 const LARGEST_SUBNORMAL_BITS: u16 = 0x03ff;
+// Exponent = 0b1, zeroed significand
 const SMALLEST_NORMAL_BITS: u16 = 0x0400;
+// Alternating patterns over the mantissa
 const NAN_MASK1: u16 = 0x02aa;
 const NAN_MASK2: u16 = 0x0155;
 
@@ -18,6 +26,12 @@ fn test_roundtrip_f16(input: f16, bits: u16, disp: &str) {
     let inbits = input.to_bits();
     assert_eq!(inbits, bits, "bits mismatch {inbits:#06x} != {bits:#06x}");
     assert_eq!(input.to_string(), disp);
+}
+
+#[test]
+fn test_constants() {
+    assert_eq!(f16::MIN.to_bits(), MAX_DOWN_BITS);
+    assert_eq!(f16::MIN_POSITIVE.to_bits(), SMALLEST_NORMAL_BITS);
 }
 
 #[test]
@@ -366,8 +380,8 @@ macro_rules! assert_f16_biteq {
 #[test]
 // #[cfg(not(target_arch = "x86"))]
 fn test_next_up() {
-    let tiny = f16::from_bits(1);
-    let tiny_up = f16::from_bits(2);
+    let tiny = f16::from_bits(TINY_BITS);
+    let tiny_up = f16::from_bits(TINY_UP_BITS);
     let max_down = f16::from_bits(MAX_DOWN_BITS);
     let largest_subnormal = f16::from_bits(LARGEST_SUBNORMAL_BITS);
     let smallest_normal = f16::from_bits(SMALLEST_NORMAL_BITS);
@@ -402,8 +416,8 @@ fn test_next_up() {
 #[test]
 // #[cfg(not(target_arch = "x86"))]
 fn test_next_down() {
-    let tiny = f16::from_bits(1);
-    let tiny_up = f16::from_bits(2);
+    let tiny = f16::from_bits(TINY_BITS);
+    let tiny_up = f16::from_bits(TINY_UP_BITS);
     let max_down = f16::from_bits(MAX_DOWN_BITS);
     let largest_subnormal = f16::from_bits(LARGEST_SUBNORMAL_BITS);
     let smallest_normal = f16::from_bits(SMALLEST_NORMAL_BITS);
@@ -777,8 +791,8 @@ fn test_float_bits_conv() {
 
     // Check that NaNs roundtrip their bits regardless of signaling-ness
     // 0xA is 0b1010; 0x5 is 0b0101 -- so these two together clobbers all the mantissa bits
-    let masked_nan1 = f16::NAN.to_bits() ^ 0x02AA;
-    let masked_nan2 = f16::NAN.to_bits() ^ 0x0155;
+    let masked_nan1 = f16::NAN.to_bits() ^ NAN_MASK1;
+    let masked_nan2 = f16::NAN.to_bits() ^ NAN_MASK2;
     assert!(f16::from_bits(masked_nan1).is_nan());
     assert!(f16::from_bits(masked_nan2).is_nan());
 
