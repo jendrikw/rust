@@ -1747,10 +1747,10 @@ impl PrimitiveType {
             hir::PrimTy::Uint(UintTy::U32) => PrimitiveType::U32,
             hir::PrimTy::Uint(UintTy::U64) => PrimitiveType::U64,
             hir::PrimTy::Uint(UintTy::U128) => PrimitiveType::U128,
-            hir::PrimTy::Float(FloatTy::F16) => unimplemented!(),
+            hir::PrimTy::Float(FloatTy::F16) => PrimitiveType::F16,
             hir::PrimTy::Float(FloatTy::F32) => PrimitiveType::F32,
             hir::PrimTy::Float(FloatTy::F64) => PrimitiveType::F64,
-            hir::PrimTy::Float(FloatTy::F128) => unimplemented!(),
+            hir::PrimTy::Float(FloatTy::F128) => PrimitiveType::F128,
             hir::PrimTy::Str => PrimitiveType::Str,
             hir::PrimTy::Bool => PrimitiveType::Bool,
             hir::PrimTy::Char => PrimitiveType::Char,
@@ -1774,8 +1774,10 @@ impl PrimitiveType {
             sym::bool => Some(PrimitiveType::Bool),
             sym::char => Some(PrimitiveType::Char),
             sym::str => Some(PrimitiveType::Str),
+            sym::f16 => Some(PrimitiveType::F16),
             sym::f32 => Some(PrimitiveType::F32),
             sym::f64 => Some(PrimitiveType::F64),
+            sym::f128 => Some(PrimitiveType::F128),
             sym::array => Some(PrimitiveType::Array),
             sym::slice => Some(PrimitiveType::Slice),
             sym::tuple => Some(PrimitiveType::Tuple),
@@ -1808,8 +1810,10 @@ impl PrimitiveType {
                 U32 => single(SimplifiedType::Uint(UintTy::U32)),
                 U64 => single(SimplifiedType::Uint(UintTy::U64)),
                 U128 => single(SimplifiedType::Uint(UintTy::U128)),
+                F16 => single(SimplifiedType::Float(FloatTy::F16)),
                 F32 => single(SimplifiedType::Float(FloatTy::F32)),
                 F64 => single(SimplifiedType::Float(FloatTy::F64)),
+                F128 => single(SimplifiedType::Float(FloatTy::F128)),
                 Str => single(SimplifiedType::Str),
                 Bool => single(SimplifiedType::Bool),
                 Char => single(SimplifiedType::Char),
@@ -1949,10 +1953,10 @@ impl From<ast::UintTy> for PrimitiveType {
 impl From<ast::FloatTy> for PrimitiveType {
     fn from(float_ty: ast::FloatTy) -> PrimitiveType {
         match float_ty {
-            ast::FloatTy::F16 => unimplemented!(),
+            ast::FloatTy::F16 => PrimitiveType::F16,
             ast::FloatTy::F32 => PrimitiveType::F32,
             ast::FloatTy::F64 => PrimitiveType::F64,
-            ast::FloatTy::F128 => unimplemented!(),
+            ast::FloatTy::F128 => PrimitiveType::F128,
         }
     }
 }
