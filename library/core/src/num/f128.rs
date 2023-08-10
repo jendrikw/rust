@@ -500,6 +500,7 @@ impl f128 {
     /// [`INFINITY`]: Self::INFINITY
     /// [`MIN`]: Self::MIN
     /// [`MAX`]: Self::MAX
+    #[inline]
     #[unstable(feature = "float_next_up_down", issue = "91399")]
     #[rustc_const_unstable(feature = "float_next_up_down", issue = "91399")]
     pub const fn next_up(self) -> Self {
@@ -549,6 +550,7 @@ impl f128 {
     /// [`INFINITY`]: Self::INFINITY
     /// [`MIN`]: Self::MIN
     /// [`MAX`]: Self::MAX
+    #[inline]
     #[unstable(feature = "float_next_up_down", issue = "91399")]
     #[rustc_const_unstable(feature = "float_next_up_down", issue = "91399")]
     pub const fn next_down(self) -> Self {
@@ -759,6 +761,7 @@ impl f128 {
     /// assert_eq!(1f128.midpoint(4.0), 2.5);
     /// assert_eq!((-5.5f128).midpoint(8.0), 1.25);
     /// ```
+    #[inline]
     #[unstable(feature = "num_midpoint", issue = "110840")]
     pub fn midpoint(self, other: f128) -> f128 {
         const LO: f128 = f128::MIN_POSITIVE * 2.;
@@ -844,6 +847,7 @@ impl f128 {
         // ...sorta.
         //
         // See the SAFETY comment in f128::from_bits for more.
+        #[inline]
         #[rustc_const_unstable(feature = "const_float_bits_conv", issue = "72447")]
         const fn ct_f128_to_u128(ct: f128) -> u128 {
             match ct.classify() {
@@ -943,6 +947,7 @@ impl f128 {
         //
         // In order to preserve, at least for the moment, const-to-runtime equivalence,
         // reject any of these possible situations from happening.
+        #[inline]
         #[rustc_const_unstable(feature = "const_float_bits_conv", issue = "72447")]
         const fn ct_u128_to_f128(ct: u128) -> f128 {
             match f128::classify_bits(ct) {
@@ -1012,10 +1017,10 @@ impl f128 {
     ///     0x00, 0x00, 0x00, 0x00, 0x00, 0x90, 0x02, 0x40
     /// ]);
     /// ```
+    #[inline]
     #[must_use = "this returns the result of the operation, without modifying the original"]
     #[unstable(feature = "f128", issue = "none")]
     #[rustc_const_unstable(feature = "const_float_bits_conv", issue = "72447")]
-    #[inline]
     pub const fn to_le_bytes(self) -> [u8; 16] {
         self.to_bits().to_le_bytes()
     }
