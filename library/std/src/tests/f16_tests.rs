@@ -12,7 +12,7 @@ const F16_APPROX_L4: f16 = 0.5;
 const TINY_BITS: u16 = 0x1;
 // Next smallest number
 const TINY_UP_BITS: u16 = 0x2;
-// Exponent = 0b11...10, Full significand. Min val > 0
+// Exponent = 0b11...10, Sifnificand 0b1111..10. Min val > 0
 const MAX_DOWN_BITS: u16 = 0x7bfe;
 // Zeroed exponent, full significant
 const LARGEST_SUBNORMAL_BITS: u16 = 0x03ff;
@@ -30,7 +30,6 @@ fn test_roundtrip_f16(input: f16, bits: u16, disp: &str) {
 
 #[test]
 fn test_constants() {
-    assert_eq!(f16::MIN.to_bits(), MAX_DOWN_BITS);
     assert_eq!(f16::MIN_POSITIVE.to_bits(), SMALLEST_NORMAL_BITS);
 }
 

@@ -115,7 +115,7 @@ impl f128 {
 
     /// Approximate number of significant digits in base 10.
     #[unstable(feature = "f128", issue = "none")]
-    pub const DIGITS: u32 = 15;
+    pub const DIGITS: u32 = 33;
 
     /// [Machine epsilon] value for `f128`.
     ///
@@ -123,7 +123,7 @@ impl f128 {
     ///
     /// [Machine epsilon]: https://en.wikipedia.org/wiki/Machine_epsilon
     #[unstable(feature = "f128", issue = "none")]
-    pub const EPSILON: f128 = 1.93e-34_f128;
+    pub const EPSILON: f128 = 1.92592994438723585305597794258492732e-34_f128;
 
     /// Smallest finite `f128` value.
     #[unstable(feature = "f128", issue = "none")]
@@ -139,11 +139,11 @@ impl f128 {
 
     /// One greater than the minimum possible normal power of 2 exponent.
     #[unstable(feature = "f128", issue = "none")]
-    pub const MIN_EXP: i32 = -16382;
+    pub const MIN_EXP: i32 = -16381;
 
     /// Maximum possible power of 2 exponent.
     #[unstable(feature = "f128", issue = "none")]
-    pub const MAX_EXP: i32 = 16383;
+    pub const MAX_EXP: i32 = 16384;
 
     /// Minimum possible normal power of 10 exponent.
     #[unstable(feature = "f128", issue = "none")]

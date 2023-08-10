@@ -12,10 +12,27 @@ const SMALLEST_NORMAL_BITS: u128 = 0x00010000000000000000000000000000;
 const NAN_MASK1: u128 = 0x0000aaaaaaaaaaaaaaaaaaaaaaaaaaaa;
 const NAN_MASK2: u128 = 0x00005555555555555555555555555555;
 
+fn test_roundtrip_f128(input: f128, bits: u128, disp: &str) {
+    let inbits = input.to_bits();
+    assert_eq!(inbits, bits, "bits mismatch {inbits:#0130x} != {bits:#0130x}");
+    assert_eq!(input.to_string(), disp);
+}
+
 #[test]
 fn test_constants() {
-    assert_eq!(f128::MIN.to_bits(), MAX_DOWN_BITS);
     assert_eq!(f128::MIN_POSITIVE.to_bits(), SMALLEST_NORMAL_BITS);
+}
+
+#[test]
+fn test_parse_display() {
+    test_roundtrip_f128(0.0, 0x00000000000000000000000000000000, "0");
+    test_roundtrip_f128(f128::INFINITY, 0x7FFF0000000000000000000000000000, "inf");
+    test_roundtrip_f128(f128::NEG_INFINITY, 0xFFFF0000000000000000000000000000, "-inf");
+    test_roundtrip_f128(1.0, 0x3FFF0000000000000000000000000000, "1");
+    test_roundtrip_f128(-1.0, 0xBFFF0000000000000000000000000000, "-1");
+    // test_roundtrip_f16(6.0e-8, 0x0001, "0.000000059604645" /* "0.00000006" */);
+    // test_roundtrip_f16(0.00000006, 0x0001, "0.000000059604645" /* "0.00000006" */);
+    // test_roundtrip_f16(1.001, 0x3C01, "1.0009766" /* "1.001" */);
 }
 
 #[test]
@@ -474,6 +491,8 @@ fn test_powf() {
 #[test]
 fn test_sqrt_domain() {
     assert!(f128::NAN.sqrt().is_nan());
+    println!("{:#34x}", f128::NEG_INFINITY.to_bits());
+    println!("{:#34x}", f128::NEG_INFINITY.sqrt().to_bits());
     assert!(f128::NEG_INFINITY.sqrt().is_nan());
     assert!((-1.0f128).sqrt().is_nan());
     assert_eq!((-0.0f128).sqrt(), -0.0);
