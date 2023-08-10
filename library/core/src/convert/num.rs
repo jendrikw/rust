@@ -183,6 +183,48 @@ impl_from! { f32, f128, #[stable(feature = "lossless_float_conv", since = "1.6.0
 #[cfg(not(bootstrap))]
 impl_from! { f64, f128, #[stable(feature = "lossless_float_conv", since = "1.6.0")] }
 
+// FIXME:f16_f128: manually impl Into for now so we can inline it and build cg_clif & cg_gcc
+// (auto Into impls aren't inlined?)
+#[cfg(not(bootstrap))]
+impl Into<f32> for f16 {
+    #[inline]
+    fn into(self) -> f32 {
+        f32::from(self)
+    }
+}
+
+#[cfg(not(bootstrap))]
+impl Into<f64> for f16 {
+    #[inline]
+    fn into(self) -> f64 {
+        f64::from(self)
+    }
+}
+
+#[cfg(not(bootstrap))]
+impl Into<f128> for f16 {
+    #[inline]
+    fn into(self) -> f128 {
+        f128::from(self)
+    }
+}
+
+#[cfg(not(bootstrap))]
+impl Into<f128> for f32 {
+    #[inline]
+    fn into(self) -> f128 {
+        f128::from(self)
+    }
+}
+
+#[cfg(not(bootstrap))]
+impl Into<f128> for f64 {
+    #[inline]
+    fn into(self) -> f128 {
+        f128::from(self)
+    }
+}
+
 // bool -> Float
 #[stable(feature = "float_from_bool", since = "1.68.0")]
 impl From<bool> for f32 {
