@@ -246,6 +246,7 @@ pub trait FnOnce<Args: Tuple> {
     type Output;
 
     /// Performs the call operation.
+    #[inline] // todo: maybe we don't need this
     #[unstable(feature = "fn_traits", issue = "29625")]
     extern "rust-call" fn call_once(self, args: Args) -> Self::Output;
 }
