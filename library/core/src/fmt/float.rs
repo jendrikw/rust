@@ -245,6 +245,7 @@ floating! { f64 @ #[stable(feature = "rust1", since = "1.0.0")] }
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl Debug for f128 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f64;
@@ -255,6 +256,7 @@ impl Debug for f128 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl Display for f128 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f64;
@@ -265,6 +267,7 @@ impl Display for f128 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl LowerExp for f128 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f64;
@@ -275,6 +278,7 @@ impl LowerExp for f128 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl UpperExp for f128 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f64;
@@ -285,6 +289,7 @@ impl UpperExp for f128 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl Debug for f16 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f32;
@@ -295,6 +300,7 @@ impl Debug for f16 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl Display for f16 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f32;
@@ -305,6 +311,7 @@ impl Display for f16 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl LowerExp for f16 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f32;
@@ -315,6 +322,7 @@ impl LowerExp for f16 {
 #[cfg(not(bootstrap))]
 #[stable(feature = "i_dont_know_why_this_cant_be_unstable", since = "CURRENT_RUSTC_VERSION")]
 impl UpperExp for f16 {
+    #[inline]
     fn fmt(&self, fmt: &mut Formatter<'_>) -> Result {
         // FIXME:f16_f128: print without casting
         let f = *self as f32;
