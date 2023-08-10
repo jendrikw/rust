@@ -967,7 +967,7 @@ fn parse_float_into_constval<'tcx>(
 }
 
 #[cfg(not(bootstrap))]
-fn parse_check_f16(num: &str, f: Half) -> Option<()> {
+fn parse_check_f16(_num: &str, _f: Half) -> Option<()> {
     // TODO: reenable this once our f16 FromStr doesn't just use f32
     // let Ok(rust_f) = num.parse::<f16>() else { return None };
 
