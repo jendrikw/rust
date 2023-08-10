@@ -80,7 +80,7 @@ cfg_if::cfg_if! {
     }
 }
 
-// TODO: does android have its own version of these functions?
+// todo: does android have its own version of these functions?
 #[inline]
 #[cfg(not(test))]
 #[cfg(not(bootstrap))]

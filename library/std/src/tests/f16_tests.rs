@@ -44,7 +44,7 @@ fn test_parse_display() {
     test_roundtrip_f16(-65504.0, 0xFBFF, "-65504");
     test_roundtrip_f16(1.0, 0x3C00, "1");
     test_roundtrip_f16(-1.0, 0xBC00, "-1");
-    // TODO: these are probably hitting the limits of printing via f32
+    // todo: these are probably hitting the limits of printing via f32
     test_roundtrip_f16(6.0e-8, 0x0001, "0.000000059604645" /* "0.00000006" */);
     test_roundtrip_f16(0.00000006, 0x0001, "0.000000059604645" /* "0.00000006" */);
     test_roundtrip_f16(1.001, 0x3C01, "1.0009766" /* "1.001" */);

@@ -272,7 +272,7 @@ impl RawFloat for f64 {
     }
 }
 
-// TODO: can't implement this because some values overflow u64. Need to check with float authors
+// todo: can't implement this because some values overflow u64. Need to check with float authors
 // to see what the best workaround is.
 // #[cfg(not(bootstrap))]
 // impl RawFloat for f128 {

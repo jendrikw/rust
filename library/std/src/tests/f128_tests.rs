@@ -536,7 +536,7 @@ fn test_ln() {
     assert_approx_eq!(1.0f128.exp().ln(), 1.0);
     assert!(nan.ln().is_nan());
     assert_eq!(inf.ln(), inf);
-    dbg!(neg_inf.ln(), neg_inf.ln().to_bits());
+    // dbg!(neg_inf.ln(), neg_inf.ln().to_bits());
     assert!(neg_inf.ln().is_nan());
     assert!((-2.3f128).ln().is_nan());
     assert_eq!((-0.0f128).ln(), neg_inf);
@@ -619,7 +619,7 @@ fn test_to_radians() {
     assert_eq!(0.0f128.to_radians(), 0.0);
     assert_approx_eq!(154.6f128.to_radians(), 2.698279);
     assert_approx_eq!((-332.31f128).to_radians(), -5.799903);
-    dbg!(180.0f128.to_radians().to_bits(), pi.to_bits());
+    // dbg!(180.0f128.to_radians().to_bits(), pi.to_bits());
     assert_eq!(180.0f128.to_radians(), pi);
     assert!(nan.to_radians().is_nan());
     assert_eq!(inf.to_radians(), inf);

@@ -656,7 +656,7 @@ impl MsvcBasicName for ty::UintTy {
 
 impl MsvcBasicName for ty::FloatTy {
     fn msvc_basic_name(self) -> &'static str {
-        // TODO: MSVC doesn't support these types, so what is this function?
+        // todo: MSVC doesn't support these types, so what is this function?
         match self {
             ty::FloatTy::F16 => "half",
             ty::FloatTy::F32 => "float",

@@ -728,7 +728,7 @@ symbols! {
         f128_nan,
         f16,
         f16_nan,
-        f16c_target_feature, // TODO: how should this interact?
+        f16c_target_feature, // todo: how should this interact?
         f32,
         f32_nan,
         f64,
