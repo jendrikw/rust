@@ -131,7 +131,7 @@ impl f128 {
 
     /// Smallest positive normal `f128` value.
     #[unstable(feature = "f128", issue = "none")]
-    pub const MIN_POSITIVE: f128 = 1.94652e-4855_f128;
+    pub const MIN_POSITIVE: f128 = 3.3621031431120935062626778173217526E-4932_f128;
 
     /// Largest finite `f128` value.
     #[unstable(feature = "f128", issue = "none")]
