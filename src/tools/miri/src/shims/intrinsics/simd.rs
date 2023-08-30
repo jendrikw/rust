@@ -68,10 +68,10 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                             };
                             let op = op.to_scalar();
                             match float_ty {
-                                FloatTy::F16 => todo!(),
+                                FloatTy::F16 => Scalar::from_f16(op.to_f16()?.abs()),
                                 FloatTy::F32 => Scalar::from_f32(op.to_f32()?.abs()),
                                 FloatTy::F64 => Scalar::from_f64(op.to_f64()?.abs()),
-                                FloatTy::F128 => todo!(),
+                                FloatTy::F128 => Scalar::from_f128(op.to_f128()?.abs()),
                             }
                         }
                         Op::HostOp(host_op) => {
@@ -80,7 +80,20 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                             };
                             // FIXME using host floats
                             match float_ty {
-                                FloatTy::F16 => todo!(),
+                                #[cfg(bootstrap)]
+                                FloatTy::F16 | FloatTy::F128 => unimplemented!(),
+                                #[cfg(not(bootstrap))]
+                                FloatTy::F16 => {
+                                    let f = f16::from_bits(op.to_scalar().to_u16()?);
+                                    let res = match host_op {
+                                        HostFloatOp::Ceil => f.ceil(),
+                                        HostFloatOp::Floor => f.floor(),
+                                        HostFloatOp::Round => f.round(),
+                                        HostFloatOp::Trunc => f.trunc(),
+                                        HostFloatOp::Sqrt => f.sqrt(),
+                                    };
+                                    Scalar::from_u16(res.to_bits())
+                                }
                                 FloatTy::F32 => {
                                     let f = f32::from_bits(op.to_scalar().to_u32()?);
                                     let res = match host_op {
@@ -103,7 +116,18 @@ pub trait EvalContextExt<'mir, 'tcx: 'mir>: crate::MiriInterpCxExt<'mir, 'tcx> {
                                     };
                                     Scalar::from_u64(res.to_bits())
                                 }
-                                FloatTy::F128 => todo!(),
+                                #[cfg(not(bootstrap))]
+                                FloatTy::F128 => {
+                                    let f = f128::from_bits(op.to_scalar().to_u128()?);
+                                    let res = match host_op {
+                                        HostFloatOp::Ceil => f.ceil(),
+                                        HostFloatOp::Floor => f.floor(),
+                                        HostFloatOp::Round => f.round(),
+                                        HostFloatOp::Trunc => f.trunc(),
+                                        HostFloatOp::Sqrt => f.sqrt(),
+                                    };
+                                    Scalar::from_u128(res.to_bits())
+                                }
                             }
 
                         }
